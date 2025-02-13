@@ -265,11 +265,14 @@ class Worker(multiprocessing.Process):
                 elif word_index > 0:
 
                     word_index = 0
+                    missed = []
                     current_match = []
                     if current_word.strip() == words[word_index].strip():
                         current_match.append(current_dict)
                         word_index += 1
-
+                    else:
+                        missed.append(current_dict)
+        print(missed)
         return matching_sentences
 
     def process_event(self, event: dict) -> None:
