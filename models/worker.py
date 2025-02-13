@@ -379,11 +379,11 @@ class Worker(multiprocessing.Process):
 
             print("GEMINI: ", paragraphs_list)
             """
-            summary = "This is a summary"
 
             logging.info(f"Split into paragraphs: {datetime.now() - start_time}")
             paragraphs = Paragraphs(model_response['text'])
             paragraphs_list = paragraphs.get_paragraphs()
+            summary = paragraphs.get_summary(model_response['text'])
 
             logging.info(f"Initialize the Google Docs manager: {datetime.now() - start_time}")
             # Initialize the Google Docs manager
