@@ -1,0 +1,52 @@
+# Auth
+gcloud auth activate-service-account --key-file=../google_service.json
+
+# Auth Docker
+gcloud auth configure-docker us-east4-docker.pkg.dev
+
+
+#Build Image
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker buildx build --platform=linux/amd64 -t us-east4-docker.pkg.dev/gen-lang-client-0834671745/whisper-serving/whisper-serving:latest .
+
+# Push Image
+docker push us-east4-docker.pkg.dev/gen-lang-client-0834671745/whisper-serving/whisper-serving:latest
+
+
+# List Images
+gcloud artifacts docker images list us-east4-docker.pkg.dev/gen-lang-client-0834671745/whisper-serving --project gen-lang-client-0834671745
+
+
+# Deploy container
+gcloud run deploy my-whisper-service --image=us-east4-docker.pkg.dev/gen-lang-client-0834671745/whisper-serving/whisper-serving:latest --region=us-east4 --allow-unauthenticated --memory=32Gi --platform=managed --project=gen-lang-client-0834671745 --cpu=8 --set-env-vars SLACK_TOKEN=xoxb-8299109893559-8326822364497-DhBOPsqm0QTHqUop1vKfTlqE,SLACK_SIGNING_SECRET=b279dda04ac3bf2eca7139b39afdd253 --service-account=genai-slackbot-dev@gen-lang-client-0834671745.iam.gserviceaccount.com --min-instances=1 --timeout=600
+
+# Delete Container
+gcloud run services delete my-whisper-service --region=us-east4 --project gen-lang-client-0834671745
+
+# Delete Repo
+gcloud artifacts repositories delete whisper-serving --project gen-lang-client-0834671745 --location=us-east4
+
+# Create repo
+gcloud artifacts repositories create whisper-serving --repository-format=docker --location=us-east4 --description="Docker repository for Whisper models" --project gen-lang-client-0834671745
+
+# Update container with new image
+gcloud run deploy my-whisper-service --image=us-east4-docker.pkg.dev/gen-lang-client-0834671745/whisper-serving/whisper-serving:latest --region=us-east4 --project=gen-lang-client-0834671745
+
+# Add service account to container
+gcloud run services update my-whisper-service --service-account=genai-slackbot-dev@gen-lang-client-0834671745.iam.gserviceaccount.com --region=us-east4 --project=gen-lang-client-0834671745
+
+# Add ENVARS to a container
+gcloud run services update my-whisper-service --region=us-east4 --set-env-vars SLACK_TOKEN=xoxb-8299109893559-8326822364497-DhBOPsqm0QTHqUop1vKfTlqE,SLACK_SIGNING_SECRET=b279dda04ac3bf2eca7139b39afdd253 --project=gen-lang-client-0834671745
+
+
+# GPU Container
+gcloud run deploy YOUR_SERVICE_NAME \
+    --image=YOUR_IMAGE_URI \
+    --region=YOUR_REGION \
+--cpu=4 \
+    --machine-type=YOUR_MACHINE_TYPE \  # e.g., n1-standard-2, a2-highgpu-1g ## PRETTY SURE YOU DONT NEED THIS LINE. IT DECIDES BASED ON YOUR REQUIREMENTS
+    --accelerator=type=nvidia-tesla-t4,count=1  # Example: One T4 GPU
+--set-env-vars API_KEY=your-api-key,DEBUG_MODE=True
+
+
+
+

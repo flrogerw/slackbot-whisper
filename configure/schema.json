@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Summary of the audio file transcript"
+    },
+    "paragraphs": {
+      "type": "array",
+      "description": "Transcript broken into paragraphs",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "summary",
+    "paragraphs"
+  ]
+}
