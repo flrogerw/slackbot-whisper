@@ -53,6 +53,7 @@ import requests
 import whisper
 from dateutil.tz import tz
 from dotenv import load_dotenv
+from transformers import pipeline
 
 from models.gemini_model import GeminiQuery
 from models.google_doc_model import GoogleDocsManager
@@ -78,6 +79,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Add missing mimetypes
 mimetypes.add_type('audio/vnd.wave', '.wav')
+
+summarizer = pipeline("summarization")
 
 
 class Worker(multiprocessing.Process):
@@ -380,10 +383,11 @@ class Worker(multiprocessing.Process):
             print("GEMINI: ", paragraphs_list)
             """
 
+
             logging.info(f"Split into paragraphs: {datetime.now() - start_time}")
             paragraphs = Paragraphs(model_response['text'])
             paragraphs_list = paragraphs.get_paragraphs()
-            summary = paragraphs.get_summary(model_response['text'], 0.05)
+            summary = summarizer(model_response['text'], max_length=50, min_length=10, do_sample=False)
 
             logging.info(f"Initialize the Google Docs manager: {datetime.now() - start_time}")
             # Initialize the Google Docs manager
