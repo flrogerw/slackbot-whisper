@@ -161,7 +161,7 @@ class Worker(multiprocessing.Process):
         return response_string.replace(" ", "_")
 
     @staticmethod
-    def convert_to_mp3_bytes(bytes_io: io.BytesIO, extension: str) -> io.BytesIO:
+    def convert_audio(bytes_io: io.BytesIO, extension: str) -> io.BytesIO:
         # Load audio from BytesIO
         audio = AudioSegment.from_file(bytes_io, format=extension)
 
@@ -284,10 +284,13 @@ class Worker(multiprocessing.Process):
                     missed = []
                     current_match = []
                     if current_word.strip() == words[word_index].strip():
+                        print("GOOD:", current_dict)
                         current_match.append(current_dict)
                         word_index += 1
                     else:
+                        print("BAD: ", current_dict)
                         missed.append(current_dict)
+
         return matching_sentences
 
     def process_event(self, event: dict) -> None:
@@ -355,7 +358,7 @@ class Worker(multiprocessing.Process):
             file_data = io.BytesIO(file_bytes)
 
             logging.info("Converting audio format for best results.")
-            file_data = self.convert_to_mp3_bytes(file_data, file_extension.lstrip("."))
+            file_data = self.convert_audio(file_data, file_extension.lstrip("."))
             file_mime_type = "audio/oog"
             file_extension = ".ogg"
 
