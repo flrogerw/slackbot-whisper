@@ -281,13 +281,12 @@ class Worker(multiprocessing.Process):
                     missed = []
                     current_match = []
                     if current_word.strip() == words[word_index].strip():
-                        print("GOOD:", current_dict)
                         current_match.append(current_dict)
                         word_index += 1
                     else:
-                        print("BAD: ", current_dict)
                         missed.append(current_dict)
-
+                else:
+                    print(current_word.strip(), words[word_index])
         return matching_sentences
 
     def process_event(self, event: dict) -> None:
