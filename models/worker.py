@@ -251,9 +251,6 @@ class Worker(multiprocessing.Process):
         matching_sentences = []
         word_index = 0
 
-        print(paragraphs)
-        print(word_dicts)
-
         for paragraph in paragraphs:
 
             words = paragraph.split()
