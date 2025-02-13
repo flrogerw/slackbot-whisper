@@ -355,7 +355,7 @@ class Worker(multiprocessing.Process):
 
                 # Parse the response
                 whisper_response = self.convert_response(model_response)
-            """
+
             # Read prompt file for Gemini query
             logging.info(f"Initialize the Gemini: {datetime.now() - start_time}")
             gemini_prompt, gemini_instructions = GeminiQuery.get_prompt(model_response['text'])
@@ -375,10 +375,10 @@ class Worker(multiprocessing.Process):
             # Process the query using the Gemini model
             logging.info(f"Posting to Gemini: {datetime.now() - start_time}")
 
-            summary, paragraphs_list = gemini.process_query(gemini_prompt)
+            summary = gemini.process_query(gemini_prompt)
 
-            print("GEMINI: ", paragraphs_list)
-            """
+            print("GEMINI: ", summary)
+
 
 
             logging.info(f"Split into paragraphs: {datetime.now() - start_time}")
