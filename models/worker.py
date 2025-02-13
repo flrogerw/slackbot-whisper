@@ -266,7 +266,6 @@ class Worker(multiprocessing.Process):
 
                     word_index = 0
                     current_match = []
-                    print(current_word.strip(), words[word_index])
                     if current_word.strip() == words[word_index].strip():
                         current_match.append(current_dict)
                         word_index += 1
@@ -356,6 +355,7 @@ class Worker(multiprocessing.Process):
                 # Parse the response
                 whisper_response = self.convert_response(model_response)
 
+            """
             # Read prompt file for Gemini query
             logging.info(f"Initialize the Gemini: {datetime.now() - start_time}")
             gemini_prompt, gemini_instructions = GeminiQuery.get_prompt(model_response['text'])
@@ -378,8 +378,7 @@ class Worker(multiprocessing.Process):
             summary = gemini.process_query(gemini_prompt)
 
             print("GEMINI: ", summary)
-
-
+            """
 
             logging.info(f"Split into paragraphs: {datetime.now() - start_time}")
             paragraphs = Paragraphs(model_response['text'])
