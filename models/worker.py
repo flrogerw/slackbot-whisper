@@ -58,6 +58,7 @@ from models.gemini_model import GeminiQuery
 from models.google_doc_model import GoogleDocsManager
 from models.slack_model import SlackGemini
 from models.paragraph_model import Paragraphs
+import ffmpeg
 
 # Load environment variables from .env file
 load_dotenv()
@@ -165,14 +166,24 @@ class Worker(multiprocessing.Process):
         # Whisper prefers mono
         audio = audio.set_channels(1)
 
-        # Convert to flac in memory
-        mp3_stream = io.BytesIO()
-        audio.export(mp3_stream, format="mp3", bitrate="16k")
+        # Export to BytesIO as WAV (needed for ffmpeg input)
+        audio_buffer = io.BytesIO()
+        audio.export(audio_buffer, format="wav")
+        audio_buffer.seek(0)  # Reset buffer position
 
-        # Move to the beginning of the stream
-        mp3_stream.seek(0)
+        # Process with FFmpeg
+        output_buffer = io.BytesIO()
+        process = (
+            ffmpeg.input("pipe:0")
+            .output("pipe:1", format="ogg", ac=1, c="libopus", b="12k", application="voip", map_metadata="-1")
+            .run(input=audio_buffer.read(), capture_stdout=True, capture_stderr=True)
+        )
 
-        return mp3_stream  # Returns a BytesIO object containing MP3 data
+        # Store the FFmpeg output in BytesIO
+        output_buffer.write(process[0])
+        output_buffer.seek(0)  # Reset buffer position for reading
+
+        return output_buffer
 
     @staticmethod
     def zip_files(audio: io.BytesIO, orca_html: str, audio_ext: str, zip_name: str):
@@ -275,7 +286,6 @@ class Worker(multiprocessing.Process):
                         word_index += 1
                     else:
                         missed.append(current_dict)
-        print(missed)
         return matching_sentences
 
     def process_event(self, event: dict) -> None:
@@ -344,8 +354,8 @@ class Worker(multiprocessing.Process):
 
             logging.info("Converting audio format for best results.")
             file_data = self.convert_to_mp3_bytes(file_data, file_extension.lstrip("."))
-            file_mime_type = "audio/mp3"
-            file_extension = ".mp3"
+            file_mime_type = "audio/oog"
+            file_extension = ".ogg"
 
             # Create a temporary file and save the content
             with NamedTemporaryFile(dir="/app/tmp", delete=True, suffix=file_extension) as temp_file:
