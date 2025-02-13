@@ -107,8 +107,24 @@ class Worker(multiprocessing.Process):
                 self.process_event(event)
             time.sleep(1)
 
-    @staticmethod
-    def convert_response(response: dict):
+    def merge_hyphenated_words(self, words):
+        merged_words = []
+
+        for i in range(len(words)):
+            word = words[i]['word']
+            start = words[i]['start']
+            end = words[i]['end']
+
+            if word.startswith('-') and merged_words:
+                # Merge with the previous word
+                merged_words[-1]['word'] += word
+                merged_words[-1]['end'] = end  # Update end time
+            else:
+                merged_words.append({'word': word, 'start': start, 'end': end})
+
+        return merged_words
+
+    def convert_response(self, response: dict):
         try:
             # Format the results (optional)
             transcription = response["text"]
@@ -121,7 +137,8 @@ class Worker(multiprocessing.Process):
                         "end": word["end"],
                     })
 
-            response_data = {"transcription": transcription, "words": words}
+            merged_words = self.merge_hyphenated_words(words)
+            response_data = {"transcription": transcription, "words": merged_words}
 
         except Exception:
             logging.exception("Error transcribing")
