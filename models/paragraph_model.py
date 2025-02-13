@@ -120,6 +120,6 @@ class Paragraphs:
 
             # Append the last accumulated text if it's not empty
         if current_text:
-            text_array.append(current_text)
+            text_array.append(current_text.strip())
 
         return text_array
