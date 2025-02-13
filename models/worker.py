@@ -281,6 +281,7 @@ class Worker(multiprocessing.Process):
                 if word_index < len(words) and current_word.strip() == words[word_index]:
                     current_match.append(current_dict)  # append to current match
                     word_index += 1
+                    print(current_match)
 
                     if word_index == len(words):  # all words matched
 
