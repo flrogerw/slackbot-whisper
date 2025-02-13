@@ -42,6 +42,8 @@ import re
 import string
 import zipfile
 from datetime import datetime
+
+import ffmpeg
 from pydub import AudioSegment
 
 import time
@@ -58,7 +60,7 @@ from models.gemini_model import GeminiQuery
 from models.google_doc_model import GoogleDocsManager
 from models.slack_model import SlackGemini
 from models.paragraph_model import Paragraphs
-import ffmpeg
+
 
 # Load environment variables from .env file
 load_dotenv()
