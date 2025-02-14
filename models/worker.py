@@ -294,8 +294,10 @@ class Worker(multiprocessing.Process):
 
             print("Words", words)
             print("Tokens", token_keys)
-            print([self.tokenizer.decode([t]).strip() for t in words])
-            print([self.tokenizer.decode([t]).strip() for t in token_keys])
+            print("Words", [self.tokenizer.decode([t]).strip() for t in words])
+            print("Tokens", [self.tokenizer.decode([t]).strip() for t in token_keys])
+
+            print(paragraph)
 
             out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
