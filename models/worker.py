@@ -281,7 +281,7 @@ class Worker(multiprocessing.Process):
                        axis=1)
             )[0]
             print(match_indices.tolist())
-            return match_indices.tolist()
+        return match_indices.tolist()
 
     def process_event(self, event: dict) -> None:
         """Process a Slack event.
