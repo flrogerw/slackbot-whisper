@@ -268,11 +268,11 @@ class Worker(multiprocessing.Process):
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
-        all_text = [hashlib.sha256(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
+        all_text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
 
         for paragraph in paragraphs:
 
-            words = [hashlib.sha256(word.encode()).hexdigest() for word in paragraph.split()]
+            words = [hash(word.encode()) for word in paragraph.split()]
             # Find matches
             match_indices = np.squeeze(self.pattern_index_broadcasting(all_text, words)[:, None] + np.arange(len(words)))
 
