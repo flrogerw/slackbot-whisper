@@ -52,6 +52,7 @@ from tempfile import NamedTemporaryFile
 
 import requests
 import whisper
+from whisper.tokenizer import get_tokenizer
 from dateutil.tz import tz
 from dotenv import load_dotenv
 
@@ -254,8 +255,10 @@ class Worker(multiprocessing.Process):
         for paragraph in paragraphs:
             wordsorg = paragraph.split()  # Tokenizing the paragraph
             print(wordsorg)
-            tokenizer = self.model.tokenizer
-            words = tokenizer.encode(paragraph)
+            # Get the tokenizer (Whisper uses GPT-2 BPE)
+            tokenizer = get_tokenizer(self.model.is_multilingual)
+            words = tokenizer.encode("after-party")
+
             print(words)
 
             # Encode a sentence into tokens
