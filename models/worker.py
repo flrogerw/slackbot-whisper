@@ -267,21 +267,32 @@ class Worker(multiprocessing.Process):
         all_data_2D = self.strided_app(np.asarray(all_data), n, S=1)
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
-    def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
-        all_text = [word_dict["word"] for word_dict in word_dicts]
+    def find_matching_sequence(word_dicts: list, paragraphs: list) -> list:
+        all_text = [word_dict["word"] for word_dict in word_dicts]  # Extract words in order
+        text_array = np.array(all_text, dtype=object)
+        all_indices = []  # Store all matches
+
         for paragraph in paragraphs:
             words = paragraph.split()
-            """Find indices where pattern_list fully matches a sublist in text_list."""
-            text_array = np.array(all_text, dtype=object)  # Ensure strings are handled properly
+
+            # Convert lists to numpy arrays
             pattern_array = np.array(words, dtype=object)
 
+            # Ensure the pattern is not longer than the text
+            if len(pattern_array) > len(text_array):
+                continue
+
             # Create a sliding window over text_array
-            match_indices = np.where(
-                np.all(np.lib.stride_tricks.sliding_window_view(text_array, len(pattern_array)) == pattern_array,
-                       axis=1)
-            )[0]
-            print(match_indices.tolist())
-        return match_indices.tolist()
+            sliding_views = np.lib.stride_tricks.sliding_window_view(text_array, len(pattern_array))
+
+            # Find matches
+            match_indices = np.where(np.all(sliding_views == pattern_array, axis=1))[0]
+
+            # Append all found indices
+            all_indices.extend(match_indices.tolist())
+
+        print(all_indices)
+        return all_indices
 
     def process_event(self, event: dict) -> None:
         """Process a Slack event.
