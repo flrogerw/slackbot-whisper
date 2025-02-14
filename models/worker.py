@@ -259,17 +259,15 @@ class Worker(multiprocessing.Process):
                for a sentence in the input `sentences` list. Returns an empty list if no matches are found.
            """
 
-        token_map = {}
+        token_map = []
 
         for item in word_dicts:
             token = item['token']
-            if token not in token_map:
-                token_map[token] = []
-            token_map[token].append({
+            token_map.append({token: {
                 'word': item['word'],
                 'start': item['start'],
                 'end': item['end']
-            })
+            }})
 
         print(token_map)
 
