@@ -290,7 +290,12 @@ class Worker(multiprocessing.Process):
 
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             words = self.tokenizer.encode(paragraph)
-            print("Words", words, "Tokens", token_keys)
+            print("Words", words)
+            print("Tokens", token_keys)
+            print([self.tokenizer.decode([t]).strip() for t in words])
+            print([self.tokenizer.decode([t]).strip() for t in token_keys])
+
+
             out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
             print(out)
