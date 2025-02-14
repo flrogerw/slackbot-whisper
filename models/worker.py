@@ -57,12 +57,10 @@ from whisper.tokenizer import get_tokenizer
 from dateutil.tz import tz
 from dotenv import load_dotenv
 
-
 from models.gemini_model import GeminiQuery
 from models.google_doc_model import GoogleDocsManager
 from models.slack_model import SlackGemini
 from models.paragraph_model import Paragraphs
-
 
 # Load environment variables from .env file
 load_dotenv()
@@ -290,11 +288,14 @@ class Worker(multiprocessing.Process):
 
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             words = self.tokenizer.encode(paragraph)
+            words = [t for t in words
+                     if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
+                     ]
+
             print("Words", words)
             print("Tokens", token_keys)
             print([self.tokenizer.decode([t]).strip() for t in words])
             print([self.tokenizer.decode([t]).strip() for t in token_keys])
-
 
             out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
@@ -332,7 +333,7 @@ class Worker(multiprocessing.Process):
 
         #print("\nNon-Matching Paragraphs:")
         #for unmatched in non_matching_paragraphs:
-            # print(f"Non-Matched Paragraph: {unmatched[0]}\n   Reason: {unmatched[1]}")
+        # print(f"Non-Matched Paragraph: {unmatched[0]}\n   Reason: {unmatched[1]}")
 
         return matching_sentences
 
@@ -419,7 +420,6 @@ class Worker(multiprocessing.Process):
                 # Parse the response
                 whisper_response = self.convert_response(model_response)
 
-
             """
             # Read prompt file for Gemini query
             logging.info(f"Initialize the Gemini: {datetime.now() - start_time}")
@@ -473,7 +473,8 @@ class Worker(multiprocessing.Process):
             # Add paragraphs to words list
             formatted_words = self.find_matching_sequence(whisper_response['words'], paragraphs_list)
 
-            logging.info(f"org: {len(whisper_response['words'])} paragrah: {sum(isinstance(item, dict) for sublist in formatted_words for item in sublist)}")
+            logging.info(
+                f"org: {len(whisper_response['words'])} paragrah: {sum(isinstance(item, dict) for sublist in formatted_words for item in sublist)}")
 
             # Get HTML from transcription
             html = self.create_orca_file(formatted_words)
