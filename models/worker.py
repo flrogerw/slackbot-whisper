@@ -263,13 +263,13 @@ class Worker(multiprocessing.Process):
         non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
 
         for paragraph in paragraphs:
-            wordsorg = paragraph.split()  # Tokenizing the paragraph
-            print(wordsorg)
+
+
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             tokenizer = get_tokenizer(self.model.is_multilingual)
             words = tokenizer.encode(paragraph)
 
-            print(words)
+
 
             # Encode a sentence into tokens
             current_match = []
