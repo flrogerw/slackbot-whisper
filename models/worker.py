@@ -42,6 +42,7 @@ import re
 import string
 import zipfile
 from datetime import datetime
+from pprint import pprint
 
 import ffmpeg
 import numpy as np
@@ -127,7 +128,7 @@ class Worker(multiprocessing.Process):
                           ]
                 token_index = 0
                 for word_info in words:
-                    print(word_info+"\n")
+                    pprint(word_info)
                     word_token_list.append({
                         'word': word_info['word'].strip(),
                         'token': tokens[token_index],
