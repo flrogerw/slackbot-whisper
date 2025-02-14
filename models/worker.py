@@ -267,7 +267,7 @@ class Worker(multiprocessing.Process):
 
         matching_sentences = []
         non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
-
+        print(word_dicts)
         for paragraph in paragraphs:
             words = paragraph.split()  # Tokenizing the paragraph
             current_match = []
