@@ -39,10 +39,10 @@ import mimetypes
 import multiprocessing
 import os
 import re
-import string
+
 import zipfile
 from datetime import datetime
-from pprint import pprint
+
 
 import ffmpeg
 import numpy as np
@@ -127,7 +127,6 @@ class Worker(multiprocessing.Process):
                           ]
                 token_index = 0
                 for word_info in words:
-                    pprint(word_info)
                     word_token_list.append({
                         'word': word_info['word'].strip(),
                         'token': tokens[token_index],
@@ -277,7 +276,7 @@ class Worker(multiprocessing.Process):
                A list of lists, where each inner list contains the word dictionaries that form a complete, sequential match
                for a sentence in the input `sentences` list. Returns an empty list if no matches are found.
            """
-        all_tokens = self.filter_tokens(m_response),
+        all_tokens = self.filter_tokens(m_response)
         token_map = []
 
         for item in word_dicts:
