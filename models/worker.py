@@ -97,10 +97,12 @@ class Worker(multiprocessing.Process):
         super().__init__()
         self.event_queue = event_queue
         self.model = None
+        self.tokenizer = None
 
     def run(self):
         # device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = whisper.load_model("base", device="cpu")
+        self.tokenizer = get_tokenizer(self.model.is_multilingual)
         """Continuously processes events from the queue."""
         while True:
             event = self.event_queue.get()  # Get event from queue
@@ -108,21 +110,29 @@ class Worker(multiprocessing.Process):
                 self.process_event(event)
             time.sleep(1)
 
-    @staticmethod
-    def convert_response(response: dict):
+    def convert_response(self, response: dict):
         try:
-            # Format the results (optional)
+            word_token_list = []
             transcription = response["text"]
-            words = []
-            for segment in response["segments"]:
-                for word in segment["words"]:
-                    words.append({
-                        "word": word["word"].strip(),
-                        "start": word["start"],
-                        "end": word["end"],
-                    })
+            for segment in response['segments']:
+                words = segment['words']
+                tokens = [t for t in segment['tokens']
+                          if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
+                          ]
 
-            response_data = {"transcription": transcription, "words": words}
+                token_index = 0
+                for word_info in words:
+                    if token_index < len(tokens):
+                        word_token_list.append({
+                            'word': word_info['word'].strip(),
+                            'token': tokens[token_index],
+                            'start': float(word_info['start']),
+                            'end': float(word_info['end'])
+                        })
+                        token_index += 1
+
+            # Print result
+            response_data = {"transcription": transcription, "words": word_token_list}
 
         except Exception:
             logging.exception("Error transcribing")
