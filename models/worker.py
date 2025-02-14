@@ -141,7 +141,6 @@ class Worker(multiprocessing.Process):
                 # Add reconstructed entry
                 reconstructed.append({"word": merged_word.strip(), "start": start_time, "end": end_time})
 
-            # Print result
             response_data = {"transcription": text, "words": reconstructed}
 
         except Exception:
@@ -269,86 +268,20 @@ class Worker(multiprocessing.Process):
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
-        """
-           Finds all matching sentences in a list of word dictionaries and returns them as lists of word dicts.
-
-           Args:
-                word_dicts: A list of dictionaries, where each dictionary represents a word.
-                paragraphs: A list of paragraphs.
-           Returns:
-               A list of lists, where each inner list contains the word dictionaries that form a complete, sequential match
-               for a sentence in the input `sentences` list. Returns an empty list if no matches are found.
-           """
-
-        token_map = []
-        print(word_dicts)
-        for item in word_dicts:
-            token = item['token']
-            token_map.append({token: {
-                'word': item['word'],
-                'start': item['start'],
-                'end': item['end']
-            }})
-
-        token_keys = [list(item.keys())[0] for item in token_map]
-
-        matching_sentences = []
-        non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
-
+        all_text = [word_dict["word"] for word_dict in word_dicts]
         for paragraph in paragraphs:
+            words = paragraph.split()
+            """Find indices where pattern_list fully matches a sublist in text_list."""
+            text_array = np.array(all_text, dtype=object)  # Ensure strings are handled properly
+            pattern_array = np.array(words, dtype=object)
 
-            # Get the tokenizer (Whisper uses GPT-2 BPE)
-            words = self.tokenizer.encode(paragraph)
-            words = [t for t in words
-                     if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
-                     ]
-
-            print("Words", words)
-            print("Tokens", token_keys)
-            print("Words", [self.tokenizer.decode([t]).strip() for t in words])
-            print("Tokens", [self.tokenizer.decode([t]).strip() for t in token_keys])
-
-            print(paragraph)
-
-            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
-
-            print(out)
-
-            # Encode a sentence into tokens
-            current_match = []
-            word_index = 0
-            match_found = False  # Flag to check if a match occurred
-
-            for i in range(len(word_dicts)):
-                current_dict = word_dicts[i]
-                current_word = current_dict['word'].strip()
-
-                if word_index < len(words) and self.tokenizer.encode(current_word) == words[word_index]:
-                    current_match.append(current_dict)  # Append to current match
-                    word_index += 1
-
-                    if word_index == len(words):  # If all words matched
-                        matching_sentences.append((paragraph, current_match))  # Store match
-                        match_found = True
-                        break  # Stop looking for this paragraph
-
-                else:
-                    if word_index > 0:  # Partial match, but then mismatch happened
-                        reason = f"Mismatch at word '{current_word}', expected '{words[word_index]}'."
-                        non_matching_paragraphs.append((paragraph, reason))
-                        word_index = 0
-                        current_match = []
-
-            if not match_found:  # If we finish loop without a match
-                reason = "No match found in word_dicts."
-                #print(paragraph, reason)
-                non_matching_paragraphs.append((paragraph, reason))
-
-        #print("\nNon-Matching Paragraphs:")
-        #for unmatched in non_matching_paragraphs:
-        # print(f"Non-Matched Paragraph: {unmatched[0]}\n   Reason: {unmatched[1]}")
-
-        return matching_sentences
+            # Create a sliding window over text_array
+            match_indices = np.where(
+                np.all(np.lib.stride_tricks.sliding_window_view(text_array, len(pattern_array)) == pattern_array,
+                       axis=1)
+            )[0]
+            print(match_indices.tolist())
+            return match_indices.tolist()
 
     def process_event(self, event: dict) -> None:
         """Process a Slack event.
