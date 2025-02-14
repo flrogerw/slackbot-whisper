@@ -257,7 +257,7 @@ class Worker(multiprocessing.Process):
             print(wordsorg)
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             tokenizer = get_tokenizer(self.model.is_multilingual)
-            words = tokenizer.encode("after-party")
+            words = tokenizer.encode(paragraph)
 
             print(words)
 
