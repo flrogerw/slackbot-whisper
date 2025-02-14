@@ -39,10 +39,10 @@ import mimetypes
 import multiprocessing
 import os
 import re
-import string
+
 import zipfile
 from datetime import datetime
-import hashlib
+
 import ffmpeg
 import numpy as np
 from pydub import AudioSegment
@@ -268,15 +268,16 @@ class Worker(multiprocessing.Process):
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
-        all_text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
+        hashed_text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
+        text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]
 
         for paragraph in paragraphs:
 
             words = [hash(word.encode()) for word in paragraph.split()]
             # Find matches
-            match_indices = np.squeeze(self.pattern_index_broadcasting(all_text, words)[:, None] + np.arange(len(words)))
+            match_indices = np.squeeze(self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)))
 
-            print(match_indices)
+            print(" ".join([word_dicts[i] for i in match_indices]))
         return []
 
     def process_event(self, event: dict) -> None:
