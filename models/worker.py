@@ -277,7 +277,7 @@ class Worker(multiprocessing.Process):
             # Find matches
             match_indices = np.squeeze(self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)))
 
-            print(" ".join([word_dicts[i] for i in match_indices]))
+            print([word_dicts[i] for i in match_indices])
         return []
 
     def process_event(self, event: dict) -> None:
