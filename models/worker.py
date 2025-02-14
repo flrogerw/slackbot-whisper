@@ -405,7 +405,7 @@ class Worker(multiprocessing.Process):
 
                 # Parse the response
                 whisper_response = self.convert_response(model_response)
-                print(model_response)
+
 
             """
             # Read prompt file for Gemini query
