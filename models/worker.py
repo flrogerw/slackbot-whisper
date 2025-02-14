@@ -290,7 +290,7 @@ class Worker(multiprocessing.Process):
 
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             words = self.tokenizer.encode(paragraph)
-            print(words, token_keys)
+            print("Words", words, "Tokens", token_keys)
             # out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
             #print(out)
@@ -322,7 +322,7 @@ class Worker(multiprocessing.Process):
 
             if not match_found:  # If we finish loop without a match
                 reason = "No match found in word_dicts."
-                print(paragraph, reason)
+                #print(paragraph, reason)
                 non_matching_paragraphs.append((paragraph, reason))
 
         #print("\nNon-Matching Paragraphs:")
