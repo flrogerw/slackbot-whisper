@@ -267,7 +267,7 @@ class Worker(multiprocessing.Process):
         all_data_2D = self.strided_app(np.asarray(all_data), n, S=1)
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
-    def find_matching_sequence(word_dicts: list, paragraphs: list) -> list:
+    def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
         all_text = [word_dict["word"] for word_dict in word_dicts]  # Extract words in order
         text_array = np.array(all_text, dtype=object)
         all_indices = []  # Store all matches
