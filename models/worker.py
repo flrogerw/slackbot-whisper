@@ -289,12 +289,11 @@ class Worker(multiprocessing.Process):
         for paragraph in paragraphs:
 
             # Get the tokenizer (Whisper uses GPT-2 BPE)
-            tokenizer = get_tokenizer(self.model.is_multilingual)
-            words = tokenizer.encode(paragraph)
+            words = self.tokenizer.encode(paragraph)
+            print(words, token_keys)
+            # out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
-            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
-
-            print(out)
+            #print(out)
 
             # Encode a sentence into tokens
             current_match = []
@@ -305,7 +304,7 @@ class Worker(multiprocessing.Process):
                 current_dict = word_dicts[i]
                 current_word = current_dict['word'].strip()
 
-                if word_index < len(words) and tokenizer.encode(current_word) == words[word_index]:
+                if word_index < len(words) and self.tokenizer.encode(current_word) == words[word_index]:
                     current_match.append(current_dict)  # Append to current match
                     word_index += 1
 
