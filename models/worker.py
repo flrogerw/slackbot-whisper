@@ -122,13 +122,12 @@ class Worker(multiprocessing.Process):
             transcription = response["text"]
             for segment in response['segments']:
                 words = segment['words']
-                print(words)
                 tokens = [t for t in segment['tokens']
                           if self.tokenizer.decode([t])  # Remove tokens that decode to empty strings
                           ]
-
                 token_index = 0
                 for word_info in words:
+                    print(word_info+"\n")
                     word_token_list.append({
                         'word': word_info['word'].strip(),
                         'token': tokens[token_index],
@@ -277,7 +276,7 @@ class Worker(multiprocessing.Process):
            """
 
         token_map = []
-        print(word_dicts)
+
         for item in word_dicts:
             token = item['token']
             token_map.append({token: {
@@ -299,12 +298,11 @@ class Worker(multiprocessing.Process):
                      if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
                      ]
 
-            print("Words", words)
-            print("Tokens", token_keys)
-            print("Words", [self.tokenizer.decode([t]).strip() for t in words])
-            print("Tokens", [self.tokenizer.decode([t]).strip() for t in token_keys])
-
-            print(paragraph)
+            print("Paragraph: ", words)
+            print("Paragraph: ", [self.tokenizer.decode([t]).strip() for t in words])
+            print("All Text: ", token_keys)
+            print("All Text: ", [self.tokenizer.decode([t]).strip() for t in token_keys])
+            print("TEXT: ", paragraph)
 
             out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
