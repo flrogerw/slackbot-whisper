@@ -109,8 +109,14 @@ class Worker(multiprocessing.Process):
                 self.process_event(event)
             time.sleep(1)
 
+    def filter_tokens(self, response):
+        return [
+            t for segment in response['segments'] for t in segment['tokens']
+            if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
+        ]
+
     def convert_response(self, response: dict):
-        print(response)
+        print(self.filter_tokens(response))
         try:
             word_token_list = []
             transcription = response["text"]
