@@ -292,7 +292,7 @@ class Worker(multiprocessing.Process):
             tokenizer = get_tokenizer(self.model.is_multilingual)
             words = tokenizer.encode(paragraph)
 
-            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(m)))
+            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
             print(out)
 
