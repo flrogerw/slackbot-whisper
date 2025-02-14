@@ -101,7 +101,7 @@ class Paragraphs:
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         embeddings = embeddings / norms
 
-        activated_similarities = self.activate_similarities(similarities, p_size=10)
+        activated_similarities = self.activate_similarities(similarities, p_size=2)
 
         minmimas = argrelextrema(activated_similarities, np.less, order=2)
 
