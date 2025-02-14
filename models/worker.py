@@ -117,7 +117,7 @@ class Worker(multiprocessing.Process):
                 words = segment['words']
                 print(words)
                 tokens = [t for t in segment['tokens']
-                          if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
+                          if self.tokenizer.decode([t])  # Remove tokens that decode to empty strings
                           ]
 
                 token_index = 0
