@@ -270,7 +270,7 @@ class Worker(multiprocessing.Process):
                 current_dict = word_dicts[i]
                 current_word = current_dict['word'].strip()
 
-                if word_index < len(words) and current_word == words[word_index]:
+                if word_index < len(words) and tokenizer.encode(current_word) == words[word_index]:
                     current_match.append(current_dict)  # Append to current match
                     word_index += 1
 
@@ -379,6 +379,7 @@ class Worker(multiprocessing.Process):
 
                 # Parse the response
                 whisper_response = self.convert_response(model_response)
+                print(model_response)
 
             """
             # Read prompt file for Gemini query
