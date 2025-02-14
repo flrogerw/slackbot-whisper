@@ -270,7 +270,7 @@ class Worker(multiprocessing.Process):
            """
 
         token_map = []
-
+        print(word_dicts)
         for item in word_dicts:
             token = item['token']
             token_map.append({token: {
