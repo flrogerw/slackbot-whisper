@@ -269,7 +269,9 @@ class Worker(multiprocessing.Process):
                 'end': item['end']
             }})
 
-        print(token_map)
+        token_keys = [list(item.keys())[0] for item in token_map]
+
+        print(token_keys)
 
 
 
