@@ -110,6 +110,7 @@ class Worker(multiprocessing.Process):
             time.sleep(1)
 
     def convert_response(self, response: dict):
+        print(response)
         try:
             word_token_list = []
             transcription = response["text"]
