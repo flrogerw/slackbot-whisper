@@ -291,9 +291,9 @@ class Worker(multiprocessing.Process):
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             words = self.tokenizer.encode(paragraph)
             print("Words", words, "Tokens", token_keys)
-            # out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
+            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
-            #print(out)
+            print(out)
 
             # Encode a sentence into tokens
             current_match = []
