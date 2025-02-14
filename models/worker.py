@@ -269,16 +269,12 @@ class Worker(multiprocessing.Process):
 
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
         hashed_text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
-        text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]
-
+        matched_response = []
         for paragraph in paragraphs:
-
             words = [hash(word.encode()) for word in paragraph.split()]
-            # Find matches
             match_indices = np.squeeze(self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)))
-
-            print([word_dicts[i] for i in match_indices])
-        return []
+            matched_response.append([word_dicts[i] for i in match_indices])
+        return matched_response
 
     def process_event(self, event: dict) -> None:
         """Process a Slack event.
