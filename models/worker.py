@@ -296,11 +296,12 @@ class Worker(multiprocessing.Process):
 
             if not match_found:  # If we finish loop without a match
                 reason = "No match found in word_dicts."
+                print(paragraph, reason)
                 non_matching_paragraphs.append((paragraph, reason))
 
-        print("\nNon-Matching Paragraphs:")
-        for unmatched in non_matching_paragraphs:
-            print(f"Non-Matched Paragraph: {unmatched[0]}\n   Reason: {unmatched[1]}")
+        #print("\nNon-Matching Paragraphs:")
+        #for unmatched in non_matching_paragraphs:
+            # print(f"Non-Matched Paragraph: {unmatched[0]}\n   Reason: {unmatched[1]}")
 
         return matching_sentences
 
