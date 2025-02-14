@@ -107,24 +107,8 @@ class Worker(multiprocessing.Process):
                 self.process_event(event)
             time.sleep(1)
 
-    def merge_hyphenated_words(self, words):
-        merged_words = []
-
-        for i in range(len(words)):
-            word = words[i]['word']
-            start = words[i]['start']
-            end = words[i]['end']
-
-            if word.startswith('-') and merged_words:
-                # Merge with the previous word
-                merged_words[-1]['word'] += word
-                merged_words[-1]['end'] = end  # Update end time
-            else:
-                merged_words.append({'word': word, 'start': start, 'end': end})
-
-        return merged_words
-
-    def convert_response(self, response: dict):
+    @staticmethod
+    def convert_response(response: dict):
         try:
             # Format the results (optional)
             transcription = response["text"]
@@ -137,8 +121,7 @@ class Worker(multiprocessing.Process):
                         "end": word["end"],
                     })
 
-            merged_words = self.merge_hyphenated_words(words)
-            response_data = {"transcription": transcription, "words": merged_words}
+            response_data = {"transcription": transcription, "words": words}
 
         except Exception:
             logging.exception("Error transcribing")
@@ -267,9 +250,13 @@ class Worker(multiprocessing.Process):
 
         matching_sentences = []
         non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
-        print(word_dicts)
+
         for paragraph in paragraphs:
-            words = paragraph.split()  # Tokenizing the paragraph
+            # words = paragraph.split()  # Tokenizing the paragraph
+            tokenizer = self.model.tokenizer
+            words = tokenizer.encode(paragraph)
+
+            # Encode a sentence into tokens
             current_match = []
             word_index = 0
             match_found = False  # Flag to check if a match occurred
