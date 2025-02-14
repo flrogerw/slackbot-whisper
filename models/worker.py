@@ -42,7 +42,7 @@ import re
 import string
 import zipfile
 from datetime import datetime
-
+import hashlib
 import ffmpeg
 import numpy as np
 from pydub import AudioSegment
@@ -268,31 +268,16 @@ class Worker(multiprocessing.Process):
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
-        all_text = [word_dict["word"] for word_dict in word_dicts]  # Extract words in order
-        text_array = np.array(all_text, dtype=object)
-        all_indices = []  # Store all matches
+        all_text = [hashlib.sha256(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
 
         for paragraph in paragraphs:
-            words = paragraph.split()
 
-            # Convert lists to numpy arrays
-            pattern_array = np.array(words, dtype=object)
-
-            # Ensure the pattern is not longer than the text
-            if len(pattern_array) > len(text_array):
-                continue
-
-            # Create a sliding window over text_array
-            sliding_views = np.lib.stride_tricks.sliding_window_view(text_array, len(pattern_array))
-
+            words = [hashlib.sha256(word.encode()).hexdigest() for word in paragraph.split()]
             # Find matches
-            match_indices = np.where(np.all(sliding_views == pattern_array, axis=1))[0]
+            match_indices = np.squeeze(self.pattern_index_broadcasting(all_text, words)[:, None] + np.arange(len(words)))
 
-            # Append all found indices
-            all_indices.extend(match_indices.tolist())
-
-        print(all_indices)
-        return all_indices
+            print(match_indices)
+        return []
 
     def process_event(self, event: dict) -> None:
         """Process a Slack event.
