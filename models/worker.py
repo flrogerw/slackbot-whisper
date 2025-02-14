@@ -473,7 +473,7 @@ class Worker(multiprocessing.Process):
             docs_manager.upload_bytesio(file_data, file_name_in_drive, google_folder_id, file_mime_type)
 
             # Add paragraphs to words list
-            formatted_words = self.find_matching_sequence(whisper_response['words'], paragraphs_list)
+            formatted_words = self.find_matching_sequence(whisper_response['words'], [model_response['text']])
 
             logging.info(
                 f"org: {len(whisper_response['words'])} paragrah: {sum(isinstance(item, dict) for sublist in formatted_words for item in sublist)}")
