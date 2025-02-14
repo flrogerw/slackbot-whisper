@@ -266,40 +266,41 @@ class Worker(multiprocessing.Process):
            """
 
         matching_sentences = []
-        word_index = 0
+        non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
 
         for paragraph in paragraphs:
-
-            words = paragraph.split()
+            words = paragraph.split()  # Tokenizing the paragraph
             current_match = []
+            word_index = 0
+            match_found = False  # Flag to check if a match occurred
 
             for i in range(len(word_dicts)):
-
                 current_dict = word_dicts[i]
-                current_word = current_dict['word']
+                current_word = current_dict['word'].strip()
 
-                if word_index < len(words) and current_word.strip() == words[word_index]:
-                    current_match.append(current_dict)  # append to current match
+                if word_index < len(words) and current_word == words[word_index]:
+                    current_match.append(current_dict)  # Append to current match
                     word_index += 1
-                    print(current_match)
 
-                    if word_index == len(words):  # all words matched
+                    if word_index == len(words):  # If all words matched
+                        matching_sentences.append((paragraph, current_match))  # Store match
+                        match_found = True
+                        break  # Stop looking for this paragraph
 
-                        matching_sentences.append(current_match)  # Add the matched dicts as a new list.
-                        current_match = []  # reset for the next sentence
+                else:
+                    if word_index > 0:  # Partial match, but then mismatch happened
+                        reason = f"Mismatch at word '{current_word}', expected '{words[word_index]}'."
+                        non_matching_paragraphs.append((paragraph, reason))
                         word_index = 0
+                        current_match = []
 
-                        # Continue checking for other occurrences of the same sentence
-                        # Remove the next line to return only the first matching instance.
+            if not match_found:  # If we finish loop without a match
+                reason = "No match found in word_dicts."
+                non_matching_paragraphs.append((paragraph, reason))
 
-                        # break # Comment out to find ALL occurrences of the same sentence
-                elif word_index > 0:
-
-                    word_index = 0
-                    current_match = []
-                    if current_word.strip() == words[word_index].strip():
-                        current_match.append(current_dict)
-                        word_index += 1
+        print("\nNon-Matching Paragraphs:")
+        for unmatched in non_matching_paragraphs:
+            print(f"Non-Matched Paragraph: {unmatched[0]}\n   Reason: {unmatched[1]}")
 
         return matching_sentences
 
