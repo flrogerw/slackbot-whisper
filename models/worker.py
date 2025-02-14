@@ -129,14 +129,13 @@ class Worker(multiprocessing.Process):
 
                 token_index = 0
                 for word_info in words:
-                    if token_index < len(tokens):
-                        word_token_list.append({
-                            'word': word_info['word'].strip(),
-                            'token': tokens[token_index],
-                            'start': float(word_info['start']),
-                            'end': float(word_info['end'])
-                        })
-                        token_index += 1
+                    word_token_list.append({
+                        'word': word_info['word'].strip(),
+                        'token': tokens[token_index],
+                        'start': float(word_info['start']),
+                        'end': float(word_info['end'])
+                    })
+                    token_index += 1
 
             # Print result
             response_data = {"transcription": transcription, "words": word_token_list}
