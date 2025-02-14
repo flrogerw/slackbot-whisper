@@ -117,7 +117,6 @@ class Worker(multiprocessing.Process):
         ]
 
     def convert_response(self, response: dict):
-        print(self.filter_tokens(response))
         try:
             word_token_list = []
             transcription = response["text"]
@@ -138,7 +137,10 @@ class Worker(multiprocessing.Process):
                     token_index += 1
 
             # Print result
-            response_data = {"transcription": transcription, "words": word_token_list}
+            response_data = {
+                "transcription": transcription,
+                "words": word_token_list
+            }
 
         except Exception:
             logging.exception("Error transcribing")
@@ -264,7 +266,7 @@ class Worker(multiprocessing.Process):
         all_data_2D = self.strided_app(np.asarray(all_data), n, S=1)
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
-    def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
+    def find_matching_sequence(self, m_response, word_dicts: list, paragraphs: list) -> list:
         """
            Finds all matching sentences in a list of word dictionaries and returns them as lists of word dicts.
 
@@ -275,7 +277,7 @@ class Worker(multiprocessing.Process):
                A list of lists, where each inner list contains the word dictionaries that form a complete, sequential match
                for a sentence in the input `sentences` list. Returns an empty list if no matches are found.
            """
-
+        all_tokens = self.filter_tokens(m_response),
         token_map = []
 
         for item in word_dicts:
@@ -301,11 +303,11 @@ class Worker(multiprocessing.Process):
 
             print("Paragraph: ", words)
             print("Paragraph: ", [self.tokenizer.decode([t]).strip() for t in words])
-            print("All Text: ", token_keys)
-            print("All Text: ", [self.tokenizer.decode([t]).strip() for t in token_keys])
+            print("All Text: ", all_tokens)
+            print("All Text: ", [self.tokenizer.decode([t]).strip() for t in all_tokens])
             print("TEXT: ", paragraph)
 
-            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
+            out = np.squeeze(self.pattern_index_broadcasting(all_tokens, words)[:, None] + np.arange(len(words)))
 
             print(out)
 
@@ -479,7 +481,7 @@ class Worker(multiprocessing.Process):
             docs_manager.upload_bytesio(file_data, file_name_in_drive, google_folder_id, file_mime_type)
 
             # Add paragraphs to words list
-            formatted_words = self.find_matching_sequence(whisper_response['words'], [model_response['text']])
+            formatted_words = self.find_matching_sequence(model_response, whisper_response['words'], paragraphs_list)
 
             logging.info(
                 f"org: {len(whisper_response['words'])} paragrah: {sum(isinstance(item, dict) for sublist in formatted_words for item in sublist)}")
