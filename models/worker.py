@@ -39,10 +39,9 @@ import mimetypes
 import multiprocessing
 import os
 import re
-
+import string
 import zipfile
 from datetime import datetime
-
 
 import ffmpeg
 import numpy as np
@@ -110,36 +109,40 @@ class Worker(multiprocessing.Process):
                 self.process_event(event)
             time.sleep(1)
 
-    def filter_tokens(self, response):
-        return [
-            t for segment in response['segments'] for t in segment['tokens']
-            if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
-        ]
-
-    def convert_response(self, response: dict):
+    def convert_response(self, response):
         try:
-            word_token_list = []
-            transcription = response["text"]
-            for segment in response['segments']:
-                words = segment['words']
-                tokens = [t for t in segment['tokens']
-                          if self.tokenizer.decode([t])  # Remove tokens that decode to empty strings
-                          ]
-                token_index = 0
-                for word_info in words:
-                    word_token_list.append({
-                        'word': word_info['word'].strip(),
-                        'token': tokens[token_index],
-                        'start': float(word_info['start']),
-                        'end': float(word_info['end'])
-                    })
-                    token_index += 1
+            text = response['text']
+            word_dicts = [word for segment in response['segments'] for word in segment.get('words', [])]
+            words = text.split()  # Get words from text
+            reconstructed = []
+            word_index = 0  # Pointer for word_dicts
+
+            for word in words:
+                merged_word = ""
+                start_time = None
+                end_time = None
+
+                # Collect dict entries until we fully reconstruct `word`
+                while word_index < len(word_dicts) and merged_word.replace(" ", "") != word.replace(" ", ""):
+                    word_data = word_dicts[word_index]
+                    token_word = word_data["word"]
+                    token_start = word_data["start"]
+                    token_end = word_data["end"]
+
+                    # Set start time for first part
+                    if start_time is None:
+                        start_time = token_start
+
+                    # Merge word
+                    merged_word += token_word
+                    end_time = token_end  # Always take the last end time
+                    word_index += 1  # Move to next dict entry
+
+                # Add reconstructed entry
+                reconstructed.append({"word": merged_word.strip(), "start": start_time, "end": end_time})
 
             # Print result
-            response_data = {
-                "transcription": transcription,
-                "words": word_token_list
-            }
+            response_data = {"transcription": text, "words": reconstructed}
 
         except Exception:
             logging.exception("Error transcribing")
@@ -265,7 +268,7 @@ class Worker(multiprocessing.Process):
         all_data_2D = self.strided_app(np.asarray(all_data), n, S=1)
         return np.flatnonzero((all_data_2D == search_data).all(1))
 
-    def find_matching_sequence(self, m_response, word_dicts: list, paragraphs: list) -> list:
+    def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
         """
            Finds all matching sentences in a list of word dictionaries and returns them as lists of word dicts.
 
@@ -276,9 +279,9 @@ class Worker(multiprocessing.Process):
                A list of lists, where each inner list contains the word dictionaries that form a complete, sequential match
                for a sentence in the input `sentences` list. Returns an empty list if no matches are found.
            """
-        all_tokens = self.filter_tokens(m_response)
-        token_map = []
 
+        token_map = []
+        print(word_dicts)
         for item in word_dicts:
             token = item['token']
             token_map.append({token: {
@@ -300,13 +303,14 @@ class Worker(multiprocessing.Process):
                      if self.tokenizer.decode([t]).strip()  # Remove tokens that decode to empty strings
                      ]
 
-            print("Paragraph: ", words)
-            print("Paragraph: ", [self.tokenizer.decode([t]).strip() for t in words])
-            print("All Text: ", all_tokens)
-            print("All Text: ", [self.tokenizer.decode([t]).strip() for t in all_tokens])
-            print("TEXT: ", paragraph)
+            print("Words", words)
+            print("Tokens", token_keys)
+            print("Words", [self.tokenizer.decode([t]).strip() for t in words])
+            print("Tokens", [self.tokenizer.decode([t]).strip() for t in token_keys])
 
-            out = np.squeeze(self.pattern_index_broadcasting(all_tokens, words)[:, None] + np.arange(len(words)))
+            print(paragraph)
+
+            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(words)))
 
             print(out)
 
@@ -480,7 +484,7 @@ class Worker(multiprocessing.Process):
             docs_manager.upload_bytesio(file_data, file_name_in_drive, google_folder_id, file_mime_type)
 
             # Add paragraphs to words list
-            formatted_words = self.find_matching_sequence(model_response, whisper_response['words'], paragraphs_list)
+            formatted_words = self.find_matching_sequence(whisper_response['words'], paragraphs_list)
 
             logging.info(
                 f"org: {len(whisper_response['words'])} paragrah: {sum(isinstance(item, dict) for sublist in formatted_words for item in sublist)}")
