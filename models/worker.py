@@ -44,6 +44,7 @@ import zipfile
 from datetime import datetime
 
 import ffmpeg
+import numpy as np
 from pydub import AudioSegment
 
 import time
@@ -247,6 +248,17 @@ class Worker(multiprocessing.Process):
         else:
             return html_output
 
+    def strided_app(self, a, L, S):  # Window len = L, Stride len/stepsize = S
+        nrows = ((a.size - L) // S) + 1
+        n = a.strides[0]
+        return np.lib.stride_tricks.as_strided(a, shape=(nrows, L), strides=(S * n, n))
+
+    def pattern_index_broadcasting(self, all_data, search_data):
+        n = len(search_data)
+        all_data = np.asarray(all_data)
+        all_data_2D = self.strided_app(np.asarray(all_data), n, S=1)
+        return np.flatnonzero((all_data_2D == search_data).all(1))
+
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
         """
            Finds all matching sentences in a list of word dictionaries and returns them as lists of word dicts.
@@ -271,21 +283,18 @@ class Worker(multiprocessing.Process):
 
         token_keys = [list(item.keys())[0] for item in token_map]
 
-        print(token_keys)
-
-
-
         matching_sentences = []
         non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
 
         for paragraph in paragraphs:
 
-
             # Get the tokenizer (Whisper uses GPT-2 BPE)
             tokenizer = get_tokenizer(self.model.is_multilingual)
             words = tokenizer.encode(paragraph)
 
+            out = np.squeeze(self.pattern_index_broadcasting(token_keys, words)[:, None] + np.arange(len(m)))
 
+            print(out)
 
             # Encode a sentence into tokens
             current_match = []
