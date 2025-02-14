@@ -252,9 +252,11 @@ class Worker(multiprocessing.Process):
         non_matching_paragraphs = []  # Stores unmatched paragraphs and reasons
 
         for paragraph in paragraphs:
-            # words = paragraph.split()  # Tokenizing the paragraph
+            wordsorg = paragraph.split()  # Tokenizing the paragraph
+            print(wordsorg)
             tokenizer = self.model.tokenizer
             words = tokenizer.encode(paragraph)
+            print(words)
 
             # Encode a sentence into tokens
             current_match = []
