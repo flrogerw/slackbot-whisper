@@ -60,37 +60,7 @@ class Paragraphs:
     def get_paragraphs(self):
         # split text into sentences.
         sentences = seg.segment(self.transcript)
-        """
-        # Get the length of each sentence
-        sentence_length = [len(each) for each in sentences]
 
-        # Determine longest outlier
-        long = np.mean(sentence_length) + np.std(sentence_length) * 2
-
-        # Determine shortest outlier
-        short = np.mean(sentence_length) - np.std(sentence_length) * 2
-
-        # Shorten long sentences
-        text = ''
-        for each in sentences:
-            if len(each) > long:
-                # let's replace all the commas with dots
-                comma_splitted = each.replace(',', '.')
-            else:
-                text += f'{each}. '
-        sentences = text.split('. ')
-
-        # Now let's concatenate short ones
-        text = ''
-        for each in sentences:
-            if len(each) < short:
-                text += f'{each}. '
-            else:
-                text += f'{each}. '
-
-        # Split text into sentences
-        sentences = text.split('. ')
-        """
         # Embed sentences
         embeddings = model.encode(sentences)
 
@@ -99,7 +69,7 @@ class Paragraphs:
 
         # Normalize the embeddings
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-        embeddings = embeddings / norms
+        # embeddings = embeddings / norms
 
         activated_similarities = self.activate_similarities(similarities, p_size=2)
 
