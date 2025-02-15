@@ -39,28 +39,25 @@ import mimetypes
 import multiprocessing
 import os
 import re
-
+import time
 import zipfile
 from datetime import datetime
+from queue import Queue
+from tempfile import NamedTemporaryFile
+from typing import Any, Dict, List
 
 import ffmpeg
 import numpy as np
-from pydub import AudioSegment
-
-import time
-from queue import Queue
-from tempfile import NamedTemporaryFile
-
 import requests
 import whisper
-from whisper.tokenizer import get_tokenizer
 from dateutil.tz import tz
 from dotenv import load_dotenv
+from pydub import AudioSegment
+from whisper.tokenizer import get_tokenizer
 
-from models.gemini_model import GeminiQuery
 from models.google_doc_model import GoogleDocsManager
-from models.slack_model import SlackGemini
 from models.paragraph_model import Paragraphs
+from models.slack_model import SlackGemini
 
 # Load environment variables from .env file
 load_dotenv()
@@ -152,14 +149,14 @@ class Worker(multiprocessing.Process):
 
     @staticmethod
     def extract_text_from_blocks(blocks: list) -> str:
-        """
-        Extracts all text of type 'text' in blocks.elements.elements and stitches them together.
+        """Extracts all text of type 'text' in blocks.elements.elements and stitches them together.
 
         Args:
             blocks (list): A list of blocks containing elements.
 
         Returns:
             str: A single string with all 'text' elements stitched together.
+
         """
         extracted_texts = []
 
@@ -210,7 +207,6 @@ class Worker(multiprocessing.Process):
     @staticmethod
     def zip_files(audio: io.BytesIO, orca_html: str, audio_ext: str, zip_name: str):
         """Creates a ZIP file with the provided audio and HTML content."""
-
         # List of text-based files (name, content)
         files_to_zip = [("orca.html", orca_html)]
 
@@ -233,48 +229,176 @@ class Worker(multiprocessing.Process):
         return zip_buffer  # Return the ZIP buffer
 
     @staticmethod
-    def create_orca_file(paragraphs: list) -> str:
+    def create_orca_file(paragraphs: List[List[Dict[str, Any]]]) -> str:
+        """Generate an HTML string representing paragraphs with word-level timing metadata.
+
+        Each word is wrapped in a `<span>` with `data-start` and `data-end` attributes
+        to store timestamp information.
+
+        Args:
+            paragraphs (List[List[Dict[str, Any]]]): A list of paragraphs, where each paragraph
+            is a list of dictionaries containing word details (word text, start time, and end time).
+
+        Returns:
+            str: The generated HTML string containing word spans.
+
+        Raises:
+            ValueError: If the input `paragraphs` is not formatted correctly.
+            RuntimeError: If an unexpected error occurs during processing.
+
+        """
         html_output = ''
+
         try:
+            # Validate input structure
+            if not isinstance(paragraphs, list) or not all(isinstance(p, list) for p in paragraphs):
+                raise ValueError("Invalid input: `paragraphs` must be a list of lists containing word dictionaries.")
+
+            # Process each paragraph
             for paragraph in paragraphs:
                 html_output += '<p>'
                 for word in paragraph:
-                    word_content = word["word"].strip()
+                    # Extract and sanitize word content
+                    word_content = word.get("word", "").strip()
+                    start_time = word.get("start", 0)
+                    end_time = word.get("end", 0)
+
+                    # Append word span with timing data
                     html_output += f"""
-                        <span class="word" data-start="{word["start"]}" data-end="{word["end"]}" onclick="toggleTooltip(event)">
+                        <span class="word" data-start="{start_time}" data-end="{end_time}" onclick="toggleTooltip(event)">
                           {word_content}
                         </span>
                         """
                 html_output += '</p>'
 
-        except json.JSONDecodeError as e:
-            print(f"Error: Failed to parse JSON. {e}")
+        except json.JSONDecodeError:
+            logging.exception("Error: Failed to parse JSON.")
+
+        except ValueError:
+            logging.exception("Input validation error.")
+            raise
 
         except Exception:
-            logging.error(f"Error sending response to Slack")
+            logging.exception("Unexpected error while generating HTML.")
+
+        return html_output
+
+    def strided_app(self, a: np.ndarray, L: int, S: int) -> np.ndarray:
+        """Create a 2D sliding window view of a 1D NumPy array.
+
+        This function generates a 2D array where each row is a windowed
+        view of the input array, using a specified window length and stride.
+
+        Args:
+            a (np.ndarray): The input 1D NumPy array.
+            L (int): The length of each window.
+            S (int): The stride length (step size) between windows.
+
+        Returns:
+            np.ndarray: A 2D NumPy array where each row represents a windowed
+            segment of the original array.
+
+        Raises:
+            ValueError: If the window length `L` is greater than the input array size.
+            TypeError: If the input array is not a NumPy array or if `L` and `S` are not integers.
+
+        """
+        try:
+            # Validate input types
+            if not isinstance(a, np.ndarray):
+                raise TypeError("Input `a` must be a NumPy array.")
+            if not isinstance(L, int) or not isinstance(S, int):
+                raise TypeError("Window length `L` and stride `S` must be integers.")
+
+            # Ensure the window length is valid
+            if a.size < L:
+                error = "Window length `L` greater than input array."
+                raise ValueError(error)
+
+            # Calculate number of rows for the output 2D array
+            nrows = ((a.size - L) // S) + 1  # Number of windows that fit in the array
+
+            # Get the byte step size for each element
+            n = a.strides[0]
+
+        except Exception:
+            # Catch any unexpected errors and provide debug information
+            logging.exception("An error occurred in strided_app()")
 
         else:
-            return html_output
+            # Generate the 2D strided view using NumPy stride tricks
+            return np.lib.stride_tricks.as_strided(a, shape=(nrows, L), strides=(S * n, n))
 
-    def strided_app(self, a, L, S):  # Window len = L, Stride len/stepsize = S
-        nrows = ((a.size - L) // S) + 1
-        n = a.strides[0]
-        return np.lib.stride_tricks.as_strided(a, shape=(nrows, L), strides=(S * n, n))
+    def pattern_index_broadcasting(self, all_data: list, search_data: list) -> np.ndarray:
+        """Find the starting indices of occurrences where search_data fully matches a sublist in all_data.
 
-    def pattern_index_broadcasting(self, all_data, search_data):
-        n = len(search_data)
-        all_data = np.asarray(all_data)
-        all_data_2D = self.strided_app(np.asarray(all_data), n, S=1)
-        return np.flatnonzero((all_data_2D == search_data).all(1))
+        This function utilizes NumPy broadcasting and a sliding window approach to efficiently locate
+        matching sequences within a larger dataset.
+
+        Args:
+            all_data (list): The full sequence of data to be searched.
+            search_data (list): The pattern to search for within all_data.
+
+        Returns:
+            np.ndarray: An array of indices where the search_data sequence starts within all_data.
+                        Returns an empty array if no matches are found.
+
+        """
+        try:
+            n = len(search_data)  # Length of the search pattern
+            all_data = np.asarray(all_data)  # Ensure all_data is a NumPy array
+
+            # Generate a 2D view of all_data with a sliding window approach
+            all_data_2d = self.strided_app(all_data, n, S=1)
+
+            # Find indices where all elements of search_data match the sliding window
+            match_indices = np.flatnonzero((all_data_2d == search_data).all(1))
+
+        except Exception:
+            logging.exception("Error in pattern_index_broadcasting.")
+
+        else:
+            return match_indices  # Return matching indices as a NumPy array
 
     def find_matching_sequence(self, word_dicts: list, paragraphs: list) -> list:
-        hashed_text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]  # Extract words in order
-        matched_response = []
-        for paragraph in paragraphs:
-            words = [hash(word.encode()) for word in paragraph.split()]
-            match_indices = np.squeeze(self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)))
-            matched_response.append([word_dicts[i] for i in match_indices])
-        return matched_response
+        """Find matching sequences of words in given paragraphs based on a list of word dictionaries.
+
+        This function hashes the words in both the word_dicts and paragraphs to efficiently search for
+        matching sequences and retrieves the corresponding word dictionaries.
+
+        Args:
+            word_dicts (list): A list of dictionaries, each containing a 'word' key.
+            paragraphs (list): A list of strings (paragraphs) to be searched for matching sequences.
+
+        Returns:
+            list: A list of lists, where each inner list contains the matching word dictionaries
+                  corresponding to the sequences found in the paragraphs.
+
+        """
+        try:
+            # Hash words from word_dicts to maintain order
+            hashed_text = [hash(word_dict["word"].strip()) for word_dict in word_dicts]
+            matched_response = []
+
+            # Iterate through each paragraph
+            for paragraph in paragraphs:
+                    # Hash each word in the paragraph after encoding
+                    words = [hash(word.encode()) for word in paragraph.split()]
+
+                    # Find indices where hashed words match in the given sequence
+                    match_indices = np.squeeze(
+                        self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)),
+                    )
+
+                    # Collect the matched word dictionaries
+                    matched_response.append([word_dicts[i] for i in match_indices])
+
+        except Exception as e:
+            print(f"Error in find_matching_sequence: {e}")
+            return []
+
+        else:
+            return matched_response
 
     def process_event(self, event: dict) -> None:
         """Process a Slack event.
@@ -289,8 +413,8 @@ class Worker(multiprocessing.Process):
             None
 
         """
-        start_time = datetime.now()
-        logging.info(f"Picked up from Queue: {start_time}")
+        start_time = datetime.now(tz=tz.tzlocal())
+        logging.info("Picked up from Queue: %s", start_time)
 
         try:
             # Notify the user that their request is being processed
@@ -303,7 +427,7 @@ class Worker(multiprocessing.Process):
             channel_name = SlackGemini.get_channel_name(event['channel'])
 
             # Retrieve message text and format.
-            logging.info(f"Retrieve message text and format: {datetime.now() - start_time}")
+            logging.info("Retrieve message text and format: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             if 'blocks' not in event:
                 bot_message = "The message appears to be blank."
                 SlackGemini.send_chat_message(event['channel'], bot_message)
@@ -312,7 +436,7 @@ class Worker(multiprocessing.Process):
             message = self.extract_text_from_blocks(event['blocks'])
 
             # Retrieve file from Slack
-            logging.info(f"Retrieve file from Slack: {datetime.now() - start_time}")
+            logging.info("Retrieve file from Slack: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             event_file = event['files'][0]
 
             # Set some variable values
@@ -325,14 +449,13 @@ class Worker(multiprocessing.Process):
             file_name = f"{file_date}-{user_name}-{message}"
 
             # Make sure the file is something we can process.
-            logging.info(f"Make sure the file is something we can process: {datetime.now() - start_time}")
+            logging.info(
+                "Make sure the file is something we can process: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             if file_mime_type not in AUDIO_FILE_FORMATS:
                 bot_message = "The file is not a recognized file type."
                 SlackGemini.send_chat_message(event['channel'], bot_message)
                 return
 
-            # Download the file
-            # file_url = "https://dare.wisc.edu/wp-content/uploads/sites/1051/2008/04/Arthur.mp3"
             headers = {'Authorization': f'Bearer {SLACK_TOKEN}'}
             response = requests.get(file_url, headers=headers, timeout=5, stream=True)
             response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
@@ -348,7 +471,7 @@ class Worker(multiprocessing.Process):
                 temp_file.write(ogg_file_data.getvalue())  # Write memory content to file
                 temp_file.flush()  # Ensure data is written
 
-                logging.info(f"Sending to Whisper: {datetime.now() - start_time}")
+                logging.info("Sending to Whisper: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
                 model_response = self.model.transcribe(temp_file.name, word_timestamps=True)
 
                 # Delete temp file.
@@ -359,7 +482,7 @@ class Worker(multiprocessing.Process):
 
             """
             # Read prompt file for Gemini query
-            logging.info(f"Initialize the Gemini: {datetime.now() - start_time}")
+            logging.info(f"Initialize the Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
             gemini_prompt, gemini_instructions = GeminiQuery.get_prompt(model_response['text'])
 
             # Configure the Gemini model
@@ -371,23 +494,23 @@ class Worker(multiprocessing.Process):
                 "response_mime_type": "text/plain",
             }
 
-            logging.info(f"Initialize Gemini: {datetime.now() - start_time}")
+            logging.info(f"Initialize Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
             gemini = GeminiQuery(GEMINI_MODEL, None, gemini_instructions, gemini_config)
 
             # Process the query using the Gemini model
-            logging.info(f"Posting to Gemini: {datetime.now() - start_time}")
+            logging.info(f"Posting to Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
 
             summary = gemini.process_query(gemini_prompt)
 
             print("GEMINI: ", summary)
             """
 
-            logging.info(f"Split into paragraphs: {datetime.now() - start_time}")
+            logging.info("Split into paragraphs: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             paragraphs = Paragraphs(model_response['text'])
             paragraphs_list = paragraphs.get_paragraphs()
             summary = "Hello World"
 
-            logging.info(f"Initialize the Google Docs manager: {datetime.now() - start_time}")
+            logging.info("Initialize the Google Docs manager: %s - %s", datetime.now(tz=tz.tzlocal()), start_time)
             # Initialize the Google Docs manager
             docs_manager = GoogleDocsManager(GOOGLE_FOLDER_ID, "./google_service.json")
 
@@ -410,8 +533,7 @@ class Worker(multiprocessing.Process):
             # Add paragraphs to words list
             formatted_words = self.find_matching_sequence(whisper_response['words'], paragraphs_list)
 
-            logging.info(
-                f"org: {len(whisper_response['words'])} paragrah: {sum(isinstance(item, dict) for sublist in formatted_words for item in sublist)}")
+            logging.info("org: %s paragraph: %s", len(whisper_response['words']), sum(isinstance(item, dict) for sublist in formatted_words for item in sublist))
 
             # Get HTML from transcription
             html = self.create_orca_file(formatted_words)
@@ -420,14 +542,16 @@ class Worker(multiprocessing.Process):
             zip_buffer = self.zip_files(file_data, html, file_extension, file_name)
             docs_manager.upload_bytesio(zip_buffer, f"{file_name}.orca.zip", google_folder_id, "application/zip")
 
-        except requests.RequestException as e:
-            logging.error(f"Failed to download audio: {e}")
-            raise f"Failed to download audio: {e}"
+        except requests.RequestException:
+            logging.exception("Failed to download audio.")
+            error = "Failed to download audio."
+            raise error
 
         except Exception:
-            bot_message = f"An unexpected error occurred while processing your files."
+            bot_message = "An unexpected error occurred while processing your files."
             SlackGemini.send_chat_message(event['channel'], bot_message)
-            raise "Error interacting with Google Docs or Drive."
+            error = "Error interacting with Google Docs or Drive."
+            raise error
 
         else:
             bot_message = f"Your files have been processed and saved as: {current_date}/{user_name}/{file_name}."

@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length     = 200
+builtins        = ["_"]
+
+[tool.ruff.lint]
+#select = ['E', 'F', 'W', 'A', 'PLC', 'PLE', 'PLW', 'I']
+select          = ['ALL']
+ignore          = [
+                                #### modules
+
+                                #### specific rules
+                                "B904",         # Hacking a forced execution exit, choosing to ignore.
+                                "FBT001",       # In our case, bool is acceptable.
+                                "Q000",         # We use a mix of single and double quotes based up on interpolation context.
+                                "S301",         # Closed system, safety of pickle file not questioned.
+                                "T201",         # Debugging print() statements should be remove, but not ALL print() statements.
+                          ]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 72
