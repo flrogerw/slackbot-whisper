@@ -513,16 +513,11 @@ class Worker(multiprocessing.Process):
 
             # Process the query using the Gemini model
             logging.info(f"Posting to Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
-
             summary = gemini.process_query(gemini_prompt)
-
-            print("GEMINI: ", summary)
-
 
             logging.info("Split into paragraphs: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             paragraphs = Paragraphs(model_response['text'])
             paragraphs_list = paragraphs.get_paragraphs()
-            summary = "Hello World"
 
             logging.info("Initialize the Google Docs manager: %s - %s", datetime.now(tz=tz.tzlocal()), start_time)
             # Initialize the Google Docs manager
