@@ -42,6 +42,7 @@ import re
 import time
 import zipfile
 from datetime import datetime
+from pathlib import Path
 from queue import Queue
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, List
@@ -55,6 +56,7 @@ from dotenv import load_dotenv
 from pydub import AudioSegment
 from whisper.tokenizer import get_tokenizer
 
+from models.gemini_model import GeminiQuery
 from models.google_doc_model import GoogleDocsManager
 from models.paragraph_model import Paragraphs
 from models.slack_model import SlackGemini
@@ -106,7 +108,8 @@ class Worker(multiprocessing.Process):
                 self.process_event(event)
             time.sleep(1)
 
-    def convert_response(self, response):
+    @staticmethod
+    def convert_response(response):
         try:
             text = response['text']
             word_dicts = [word for segment in response['segments'] for word in segment.get('words', [])]
@@ -205,9 +208,8 @@ class Worker(multiprocessing.Process):
         return output_buffer
 
     @staticmethod
-    def zip_files(audio: io.BytesIO, orca_html: str, audio_ext: str, zip_name: str):
-        """Creates a ZIP file with the provided audio and HTML content."""
-        # List of text-based files (name, content)
+    def zip_files(audio: io.BytesIO, orca_html: str, audio_ext: str, zip_name: str) -> io.BytesIO:
+
         files_to_zip = [("orca.html", orca_html)]
 
         # Create an in-memory buffer for the ZIP file
@@ -229,7 +231,7 @@ class Worker(multiprocessing.Process):
         return zip_buffer  # Return the ZIP buffer
 
     @staticmethod
-    def create_orca_file(paragraphs: List[List[Dict[str, Any]]]) -> str:
+    def create_orca_file(paragraphs: list[list[dict[str, Any]]]) -> str:
         """Generate an HTML string representing paragraphs with word-level timing metadata.
 
         Each word is wrapped in a `<span>` with `data-start` and `data-end` attributes
@@ -472,7 +474,17 @@ class Worker(multiprocessing.Process):
                 temp_file.write(ogg_file_data.getvalue())  # Write memory content to file
                 temp_file.flush()  # Ensure data is written
 
-                logging.info("Sending to Whisper: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
+                # Check for max size
+                file_path = Path(temp_file.name)
+                file_size_mb = file_path.stat().st_size / (1024 * 1024)
+                if file_size_mb > 25:
+                    temp_file.close()
+                    bot_message = f"Your audio file is greater than the allowed 25MB: {file_size_mb}."
+                    SlackGemini.send_chat_message(event['channel'], bot_message)
+                    logging.info("File to large: %s quiting.", file_size_mb)
+                    return
+
+                logging.info("Sending to Whisper: %s - %s", datetime.now(tz=tz.tzlocal()), start_time)
                 model_response = self.model.transcribe(temp_file.name, word_timestamps=True)
 
                 # Delete temp file.
@@ -481,7 +493,7 @@ class Worker(multiprocessing.Process):
                 # Parse the response
                 whisper_response = self.convert_response(model_response)
 
-            """
+
             # Read prompt file for Gemini query
             logging.info(f"Initialize the Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
             gemini_prompt, gemini_instructions = GeminiQuery.get_prompt(model_response['text'])
@@ -504,7 +516,7 @@ class Worker(multiprocessing.Process):
             summary = gemini.process_query(gemini_prompt)
 
             print("GEMINI: ", summary)
-            """
+
 
             logging.info("Split into paragraphs: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             paragraphs = Paragraphs(model_response['text'])
@@ -543,6 +555,7 @@ class Worker(multiprocessing.Process):
             zip_buffer = self.zip_files(file_data, html, file_extension, file_name)
             docs_manager.upload_bytesio(zip_buffer, f"{file_name}.orca.zip", google_folder_id, "application/zip")
 
+
         except requests.RequestException:
             logging.exception("Failed to download audio.")
             error = "Failed to download audio."
@@ -551,7 +564,7 @@ class Worker(multiprocessing.Process):
         except Exception:
             bot_message = "An unexpected error occurred while processing your files."
             SlackGemini.send_chat_message(event['channel'], bot_message)
-            error = "Error interacting with Google Docs or Drive."
+            error = "An unexpected error occurred while processing the files."
             raise error
 
         else:
