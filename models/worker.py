@@ -341,13 +341,11 @@ class Worker(multiprocessing.Process):
             file_data = io.BytesIO(file_bytes)
 
             logging.info("Converting audio format for best results.")
-            file_data = self.convert_audio(file_data, file_extension.lstrip("."))
-            file_mime_type = "audio/oog"
-            file_extension = ".ogg"
+            ogg_file_data = self.convert_audio(file_data, file_extension.lstrip("."))
 
             # Create a temporary file and save the content
-            with NamedTemporaryFile(dir="/app/tmp", delete=True, suffix=file_extension) as temp_file:
-                temp_file.write(file_data.getvalue())  # Write memory content to file
+            with NamedTemporaryFile(dir="/app/tmp", delete=True, suffix=".ogg") as temp_file:
+                temp_file.write(ogg_file_data.getvalue())  # Write memory content to file
                 temp_file.flush()  # Ensure data is written
 
                 logging.info(f"Sending to Whisper: {datetime.now() - start_time}")
