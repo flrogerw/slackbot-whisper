@@ -99,7 +99,8 @@ class Worker(multiprocessing.Process):
 
     def run(self):
         # device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = whisper.load_model("base", device="cpu")
+        device = "cpu"
+        self.model = whisper.load_model("base", device=device)
         self.tokenizer = get_tokenizer(self.model.is_multilingual)
         """Continuously processes events from the queue."""
         while True:
@@ -267,7 +268,7 @@ class Worker(multiprocessing.Process):
 
                     # Append word span with timing data
                     html_output += f"""
-                        <span class="word" data-start="{start_time}" data-end="{end_time}" onclick="toggleTooltip(event)">
+                        <span class="word" data-start="{start_time}" data-end="{end_time}" onclick="displayTime(event)">
                           {word_content}
                         </span>
                         """
