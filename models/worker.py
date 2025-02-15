@@ -283,7 +283,8 @@ class Worker(multiprocessing.Process):
 
         return html_output
 
-    def strided_app(self, a: np.ndarray, L: int, S: int) -> np.ndarray:
+    @staticmethod
+    def strided_app(a: np.ndarray, L: int, S: int) -> np.ndarray:
         """Create a 2D sliding window view of a 1D NumPy array.
 
         This function generates a 2D array where each row is a windowed
