@@ -240,4 +240,4 @@ class GeminiQuery:
             logging.exception("An unexpected error occurred.")
 
         else:
-            return (gemini_response['summary'], gemini_response['paragraphs'])
+            return gemini_response['summary']

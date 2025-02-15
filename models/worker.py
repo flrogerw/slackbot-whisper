@@ -463,6 +463,7 @@ class Worker(multiprocessing.Process):
             response = requests.get(file_url, headers=headers, timeout=5, stream=True)
             response.raise_for_status()  # Raise an error for bad responses (4xx and 5xx)
             file_bytes = response.content
+
             # Read content into memory
             file_data = io.BytesIO(file_bytes)
 
