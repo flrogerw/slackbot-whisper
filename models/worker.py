@@ -268,11 +268,9 @@ class Worker(multiprocessing.Process):
 
                     # Append word span with timing data
                     html_output += f"""
-                    <Tooltip arrowOffset={10} arrowSize={4} label="Tooltip" withArrow opened position="top-start">
                         <span class="word" data-start="{start_time}" data-end="{end_time}" onclick="displayTime(event)">
                           {word_content}
                         </span>
-                    </Tooltip>
                         """
                 html_output += '</p>'
 
