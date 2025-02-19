@@ -131,6 +131,8 @@ class GoogleDocsManager:
             media = MediaIoBaseUpload(json_bytes, mimetype='application/json')
             self.drive_service.files().create(
                 body=file_metadata,
+                driveId=self.gdrive_id,
+                includeItemsFromAllDrives=True,
                 supportsAllDrives=True,
                 media_body=media,
                 fields='id').execute()
