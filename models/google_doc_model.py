@@ -26,18 +26,13 @@ from __future__ import annotations
 
 import json
 import logging
-import typing
-
+import io
 
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload, MediaFileUpload
 from google.oauth2.service_account import Credentials
-
-# Conditional import for type checking
-if typing.TYPE_CHECKING:
-    import io  # Import io only for type checking
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
