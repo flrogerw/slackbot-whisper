@@ -129,8 +129,11 @@ class GoogleDocsManager:
             # Upload JSON directly to Google Drive
             file_metadata = {'name': f'{file_name}.json'}  # Name of the file in Google Drive
             media = MediaIoBaseUpload(json_bytes, mimetype='application/json')
-
-            self.drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            self.drive_service.files().create(
+                body=file_metadata,
+                supportsAllDrives=True,
+                media_body=media,
+                fields='id').execute()
 
         except Exception:
             logging.exception("upload_json failed")
