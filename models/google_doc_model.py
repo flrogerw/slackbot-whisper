@@ -129,18 +129,18 @@ class GoogleDocsManager:
             # Upload JSON directly to Google Drive
             file_metadata = {'name': f'{file_name}.json'}  # Name of the file in Google Drive
             media = MediaIoBaseUpload(json_bytes, mimetype='application/json')
-            self.drive_service.files().create(
+            file = self.drive_service.files().create(
                 body=file_metadata,
-                includeItemsFromAllDrives=True,
                 supportsAllDrives=True,
                 media_body=media,
-                fields='id').execute()
+                fields='id, name, mimeType'
+            ).execute()
 
         except Exception:
             logging.exception("upload_json failed")
 
         else:
-            logging.info("Uploaded JSON log file.")
+            logging.info(f"Uploaded {file_name}.json with id: {file.get('id')}")
 
     def upload_bytesio(self, byte_stream: io.BytesIO, file_name: str, folder_id: str | None, mimetype: str) -> dict:
         """Upload an audio file from a BytesIO object to Google Drive.
