@@ -81,6 +81,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Add missing mimetypes
 mimetypes.add_type('audio/vnd.wave', '.wav')
 
+# Set timezone
+timezone = tz.gettz('America/New_York')
+
 
 class Worker(multiprocessing.Process):
     """Class for handling Slack file uploads and processing them with Google Gemini.
@@ -389,16 +392,16 @@ class Worker(multiprocessing.Process):
 
             # Iterate through each paragraph
             for paragraph in paragraphs:
-                    # Hash each word in the paragraph after encoding
-                    words = [hash(word.encode()) for word in paragraph.split()]
+                # Hash each word in the paragraph after encoding
+                words = [hash(word.encode()) for word in paragraph.split()]
 
-                    # Find indices where hashed words match in the given sequence
-                    match_indices = np.squeeze(
-                        self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)),
-                    )
+                # Find indices where hashed words match in the given sequence
+                match_indices = np.squeeze(
+                    self.pattern_index_broadcasting(hashed_text, words)[:, None] + np.arange(len(words)),
+                )
 
-                    # Collect the matched word dictionaries
-                    matched_response.append([word_dicts[i] for i in match_indices])
+                # Collect the matched word dictionaries
+                matched_response.append([word_dicts[i] for i in match_indices])
 
         except Exception as e:
             print(f"Error in find_matching_sequence: {e}")
@@ -420,7 +423,7 @@ class Worker(multiprocessing.Process):
             None
 
         """
-        start_time = datetime.now(tz=tz.tzlocal())
+        start_time = datetime.now(tz=timezone)
         logging.info("Picked up from Queue: %s", start_time)
 
         try:
@@ -430,11 +433,11 @@ class Worker(multiprocessing.Process):
 
             # Extract username and timestamp.
             user_name = SlackGemini.get_user_name(event['user'])
-            current_date = datetime.now(tz=tz.tzlocal()).strftime("%Y_%m_%d")
+            current_date = datetime.now(tz=timezone).strftime("%Y_%m_%d")
             channel_name = SlackGemini.get_channel_name(event['channel'])
 
             # Retrieve message text and format.
-            logging.info("Retrieve message text and format: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
+            logging.info("Retrieve message text and format: %s - %s ", datetime.now(tz=timezone), start_time)
             if 'blocks' not in event:
                 bot_message = "The message appears to be blank."
                 SlackGemini.send_chat_message(event['channel'], bot_message)
@@ -443,7 +446,7 @@ class Worker(multiprocessing.Process):
             message = self.extract_text_from_blocks(event['blocks'])
 
             # Retrieve file from Slack
-            logging.info("Retrieve file from Slack: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
+            logging.info("Retrieve file from Slack: %s - %s ", datetime.now(tz=timezone), start_time)
             event_file = event['files'][0]
 
             # Set some variable values
@@ -451,13 +454,13 @@ class Worker(multiprocessing.Process):
             file_mime_type = event_file['mimetype']
 
             file_extension = mimetypes.guess_extension(file_mime_type)
-            file_date = datetime.now(tz=tz.tzlocal()).strftime("%Y%m%d")
-            file_date_time = datetime.now(tz=tz.tzlocal()).strftime("%Y-%m-%d %I:%M %p")
+            file_date = datetime.now(tz=timezone).strftime("%Y%m%d")
+            file_date_time = datetime.now(tz=timezone).strftime("%Y-%m-%d %I:%M %p")
             file_name = f"{file_date}-{user_name}-{message}"
 
             # Make sure the file is something we can process.
             logging.info(
-                "Make sure the file is something we can process: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
+                "Make sure the file is something we can process: %s - %s ", datetime.now(tz=timezone), start_time)
             if file_mime_type not in AUDIO_FILE_FORMATS:
                 bot_message = "The file is not a recognized file type."
                 SlackGemini.send_chat_message(event['channel'], bot_message)
@@ -489,7 +492,7 @@ class Worker(multiprocessing.Process):
                     logging.info("File to large: %s quiting.", file_size_mb)
                     return
 
-                logging.info("Sending to Whisper: %s - %s", datetime.now(tz=tz.tzlocal()), start_time)
+                logging.info("Sending to Whisper: %s - %s", datetime.now(tz=timezone), start_time)
                 model_response = self.model.transcribe(temp_file.name, word_timestamps=True)
 
                 # Delete temp file.
@@ -500,7 +503,7 @@ class Worker(multiprocessing.Process):
 
             """
             # Read prompt file for Gemini query
-            logging.info(f"Initialize the Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
+            logging.info(f"Initialize the Gemini: {datetime.now(tz=timezone) - start_time}")
             gemini_prompt, gemini_instructions = GeminiQuery.get_prompt(model_response['text'])
 
             # Configure the Gemini model
@@ -512,19 +515,19 @@ class Worker(multiprocessing.Process):
                 "response_mime_type": "text/plain",
             }
 
-            logging.info(f"Initialize Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
+            logging.info(f"Initialize Gemini: {datetime.now(tz=timezone) - start_time}")
             gemini = GeminiQuery(GEMINI_MODEL, None, gemini_instructions, gemini_config)
 
             # Process the query using the Gemini model
-            logging.info(f"Posting to Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
+            logging.info(f"Posting to Gemini: {datetime.now(tz=timezone) - start_time}")
             summary = gemini.process_query(gemini_prompt)
             """
             summary = "Summary Goes Here"
-            logging.info("Split into paragraphs: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
+            logging.info("Split into paragraphs: %s - %s ", datetime.now(tz=timezone), start_time)
             paragraphs = Paragraphs(model_response['text'])
             paragraphs_list = paragraphs.get_paragraphs()
 
-            logging.info("Initialize the Google Docs manager: %s - %s", datetime.now(tz=tz.tzlocal()), start_time)
+            logging.info("Initialize the Google Docs manager: %s - %s", datetime.now(tz=timezone), start_time)
             # Initialize the Google Docs manager
             docs_manager = GoogleDocsManager(GOOGLE_FOLDER_ID, "./google_service.json")
 
@@ -547,7 +550,8 @@ class Worker(multiprocessing.Process):
             # Add paragraphs to words list
             formatted_words = self.find_matching_sequence(whisper_response['words'], paragraphs_list)
 
-            logging.info("org: %s paragraph: %s", len(whisper_response['words']), sum(isinstance(item, dict) for sublist in formatted_words for item in sublist))
+            logging.info("words sent: %s words returned: %s", len(whisper_response['words']),
+                         sum(isinstance(item, dict) for sublist in formatted_words for item in sublist))
 
             # Get HTML from transcription
             html = self.create_orca_file(formatted_words)
@@ -556,6 +560,18 @@ class Worker(multiprocessing.Process):
             zip_buffer = self.zip_files(file_data, html, file_extension, file_name)
             docs_manager.upload_bytesio(zip_buffer, f"{file_name}.orca.zip", google_folder_id, "application/zip")
 
+            # Upload process log.
+            file_metadata = {
+                "user": user_name,
+                "date": file_date_time,
+                "channel": channel_name,
+                "title": message,
+                "summary": summary,
+                "transcript": model_response['text'],
+                "word_count": len(model_response['text'].split())
+            }
+
+            docs_manager.upload_json(file_metadata, file_name)
 
         except requests.RequestException:
             logging.exception("Failed to download audio.")

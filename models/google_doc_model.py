@@ -31,7 +31,7 @@ import typing
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseUpload, MediaFileUpload
 from google.oauth2.service_account import Credentials
 
 # Conditional import for type checking
@@ -124,6 +124,10 @@ class GoogleDocsManager:
         except Exception:
             logging.exception("An unexpected error occurred while initializing GoogleDocsManager.")
             raise  # Reraise the exception after logging
+
+    def upload_json(self, metadata: dict, file_name: str) -> None:
+        media = MediaFileUpload(f'{file_name}.json', mimetype='application/json')
+        self.drive_service.files().create(body=metadata, media_body=media, fields='id').execute()
 
     def upload_bytesio(self, byte_stream: io.BytesIO, file_name: str, folder_id: str | None, mimetype: str) -> dict:
         """Upload an audio file from a BytesIO object to Google Drive.
