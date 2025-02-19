@@ -571,7 +571,11 @@ class Worker(multiprocessing.Process):
                 "word_count": len(model_response['text'].split())
             }
 
-            docs_manager.upload_json(file_metadata, file_name)
+            json_data = json.dumps(file_metadata, indent=4)
+            json_bytes = io.BytesIO(json_data.encode("utf-8"))
+
+            docs_manager.upload_bytesio(json_bytes, f"{file_name}.json", google_folder_id, "application/json")
+            # docs_manager.upload_json(file_metadata, file_name, google_folder_id)
 
         except requests.RequestException:
             logging.exception("Failed to download audio.")
