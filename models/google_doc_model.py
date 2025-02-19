@@ -24,6 +24,7 @@ Dependencies:
 
 from __future__ import annotations
 
+import json
 import logging
 import typing
 
@@ -126,8 +127,14 @@ class GoogleDocsManager:
             raise  # Reraise the exception after logging
 
     def upload_json(self, metadata: dict, file_name: str) -> None:
-        media = MediaFileUpload(f'{file_name}.json', mimetype='application/json')
-        self.drive_service.files().create(body=metadata, media_body=media, fields='id').execute()
+        json_data = json.dumps(metadata, indent=4)
+        json_bytes = io.BytesIO(json_data.encode("utf-8"))
+
+        # Upload JSON directly to Google Drive
+        file_metadata = {'name': f'{file_name}.json'}  # Name of the file in Google Drive
+        media = MediaIoBaseUpload(json_bytes, mimetype='application/json')
+
+        self.drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
     def upload_bytesio(self, byte_stream: io.BytesIO, file_name: str, folder_id: str | None, mimetype: str) -> dict:
         """Upload an audio file from a BytesIO object to Google Drive.
