@@ -519,7 +519,7 @@ class Worker(multiprocessing.Process):
             logging.info(f"Posting to Gemini: {datetime.now(tz=tz.tzlocal()) - start_time}")
             summary = gemini.process_query(gemini_prompt)
             """
-            summary = "XXXX"
+            summary = "Summary Goes Here"
             logging.info("Split into paragraphs: %s - %s ", datetime.now(tz=tz.tzlocal()), start_time)
             paragraphs = Paragraphs(model_response['text'])
             paragraphs_list = paragraphs.get_paragraphs()
