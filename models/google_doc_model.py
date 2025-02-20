@@ -93,6 +93,7 @@ class GoogleDocsManager:
             self.scopes = [
                 'https://www.googleapis.com/auth/documents',
                 'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/devstorage.full_control'  # Full access to GCS
             ]
 
             # Load credentials from the service account file
@@ -108,6 +109,7 @@ class GoogleDocsManager:
             # Initialize the Google Drive API service
             self.drive_service = build('drive', 'v3', credentials=self.credentials)
 
+            # Initialize the Google Storage API service
             self.storage_service = storage.Client(credentials=self.credentials)
 
             logging.info("GoogleDocsManager initialized successfully.")
