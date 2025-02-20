@@ -573,7 +573,7 @@ class Worker(multiprocessing.Process):
                 "word_count": len(model_response['text'].split())
             }
 
-            docs_manager.upload_dict_as_jsonl(BQ_BUCKET_ID, f"{file_name}.json", file_metadata)
+            docs_manager.upload_dict_as_jsonl(BQ_BUCKET_ID, f"/{current_date}/{user_name}/{file_name}.json", file_metadata)
 
         except requests.RequestException:
             logging.exception("Failed to download audio.")
