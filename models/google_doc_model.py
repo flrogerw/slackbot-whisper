@@ -28,6 +28,7 @@ import json
 import logging
 import io
 
+from google.cloud import storage
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -107,6 +108,8 @@ class GoogleDocsManager:
             # Initialize the Google Drive API service
             self.drive_service = build('drive', 'v3', credentials=self.credentials)
 
+            self.storage_service = storage.Client(credentials=self.credentials)
+
             logging.info("GoogleDocsManager initialized successfully.")
 
         except FileNotFoundError:
@@ -120,6 +123,27 @@ class GoogleDocsManager:
         except Exception:
             logging.exception("An unexpected error occurred while initializing GoogleDocsManager.")
             raise  # Reraise the exception after logging
+
+    def upload_dict_as_jsonl(self, bucket_name: str, destination_blob_name: str, data: dict) -> None:
+        """
+        Uploads a Python dictionary as a JSONL file to a GCS bucket.
+
+        :param bucket_name: Name of the GCS bucket.
+        :param destination_blob_name: Path where the file should be stored in GCS.
+        :param data: Python dictionary or list of dictionaries to be uploaded.
+        """
+        bucket = self.storage_service.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+
+        # Ensure data is a list (JSONL expects multiple JSON objects, one per line)
+        if isinstance(data, dict):
+            data = [data]  # Convert single dict to a list
+
+        # Convert list of dictionaries to JSONL format (one JSON object per line)
+        jsonl_string = "\n".join(json.dumps(record) for record in data)
+
+        # Upload JSONL string to GCS
+        blob.upload_from_string(jsonl_string, content_type="application/json")
 
     def upload_bytesio(self, byte_stream: io.BytesIO, file_name: str, folder_id: str | None, mimetype: str) -> dict:
         """Upload an audio file from a BytesIO object to Google Drive.

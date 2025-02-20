@@ -73,6 +73,8 @@ ai_system = config['system']
 GEMINI_MODEL = ai_config['gemini_model']
 AUDIO_FILE_FORMATS = ai_system['audio_file_formats'].split(',')
 GOOGLE_FOLDER_ID = ai_system['google_folder_id']
+BQ_BUCKET_ID = ai_system['big_query_bucket_id']
+
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")
 
 # Configure Logging
@@ -571,11 +573,7 @@ class Worker(multiprocessing.Process):
                 "word_count": len(model_response['text'].split())
             }
 
-            json_data = json.dumps(file_metadata, indent=4)
-            json_bytes = io.BytesIO(json_data.encode("utf-8"))
-
-            docs_manager.upload_bytesio(json_bytes, f"{file_name}.json", google_folder_id, "application/json")
-            # docs_manager.upload_json(file_metadata, file_name, google_folder_id)
+            docs_manager.upload_dict_as_jsonl(BQ_BUCKET_ID, f"{file_name}.json", file_metadata)
 
         except requests.RequestException:
             logging.exception("Failed to download audio.")
