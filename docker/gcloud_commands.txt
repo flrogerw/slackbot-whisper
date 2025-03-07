@@ -35,7 +35,7 @@ gcloud run deploy my-whisper-service --image=us-east4-docker.pkg.dev/gen-lang-cl
 gcloud run services update my-whisper-service --service-account=genai-slackbot-dev@gen-lang-client-0834671745.iam.gserviceaccount.com --region=us-east4 --project=gen-lang-client-0834671745
 
 # Add ENVARS to a container
-gcloud run services update my-whisper-service --region=us-east4 --set-env-vars SLACK_TOKEN=xoxb-8299109893559-8326822364497-DhBOPsqm0QTHqUop1vKfTlqE,SLACK_SIGNING_SECRET=b279dda04ac3bf2eca7139b39afdd253 --project=gen-lang-client-0834671745
+gcloud run services update my-whisper-service --region=us-east4 --set-env-vars SLACK_TOKEN=XXXXXXXXXX,SLACK_SIGNING_SECRET=XXXXXXXXXXXXX --project=gen-lang-client-0834671745
 
 
 # GPU Container
