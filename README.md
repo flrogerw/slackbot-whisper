@@ -59,7 +59,7 @@ This Flask application integrates with Slack and the Google Gemini API to proces
 4. **Run the App:**
 
    ```bash
-   python your_app_name.py  # Replace your_app_name.py with the actual filename
+   python app.py  
    ```
    The app defaults to running on `0.0.0.0:3000`, but you can change this within the code if needed.
 
