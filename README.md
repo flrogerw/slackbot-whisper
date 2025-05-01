@@ -69,7 +69,7 @@ This Flask application integrates with Slack and the Google Gemini API to proces
 
 1. In your Slack workspace, upload a file to any channel where your app is a member.
 2. The app will receive the `file_shared` event, download the file, and send it to Gemini for processing with the prompt and instructions you defined.
-3. The app will post Gemini's response back to the Slack channel.
+3. The app will post Gemini's response, original audio file back to the Slack channel.
 
 
 
